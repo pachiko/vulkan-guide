@@ -18,7 +18,7 @@ target_sources(vkbootstrap PRIVATE
 target_include_directories(vkbootstrap PUBLIC vkbootstrap)
 target_link_libraries(vkbootstrap PUBLIC Vulkan::Vulkan $<$<BOOL:UNIX>:${CMAKE_DL_LIBS}>)
 
-#both vma and glm and header only libs so we only need the include path
+#both vma and glm are header only libs so we only need the include path
 target_include_directories(vma INTERFACE vma)
 
 target_include_directories(glm INTERFACE glm)
@@ -48,4 +48,5 @@ target_sources(imgui PRIVATE
 
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2::SDL2)
 
+# same for STB Image (header only)
 target_include_directories(stb_image INTERFACE stb_image)

@@ -70,8 +70,8 @@ VkSemaphoreSubmitInfo vkinit::semaphore_submit_info(VkPipelineStageFlags2 stageM
 	submitInfo.pNext = nullptr;
 	submitInfo.semaphore = semaphore;
 	submitInfo.stageMask = stageMask;
-	submitInfo.deviceIndex = 0;
-	submitInfo.value = 1;
+	submitInfo.deviceIndex = 0; // Semaphores can be used in multi-GPU
+	submitInfo.value = 1; // not a timeline semaphore
 
 	return submitInfo;
 }
