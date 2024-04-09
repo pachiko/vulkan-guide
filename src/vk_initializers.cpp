@@ -132,7 +132,7 @@ VkRenderingAttachmentInfo vkinit::attachment_info(
 
     colorAttachment.imageView = view;
     colorAttachment.imageLayout = layout;
-    colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD; // clear, load, or don't care.
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     if (clear) {
         colorAttachment.clearValue = *clear;
@@ -287,7 +287,6 @@ VkImageCreateInfo vkinit::image_create_info(VkFormat format, VkImageUsageFlags u
 
 VkImageViewCreateInfo vkinit::imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags)
 {
-    // build a image-view for the depth image to use for rendering
     VkImageViewCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     info.pNext = nullptr;
