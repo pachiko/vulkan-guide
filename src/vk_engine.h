@@ -5,6 +5,7 @@
 
 #include <vk_types.h>
 #include <vk_descriptors.h>
+#include <vk_loader.h>
 
 struct DeletionQueue
 {
@@ -75,6 +76,8 @@ public:
 	//run main loop
 	void run();
 
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+
 private:
 	VkInstance _instance;// Vulkan library handle
 	VkDebugUtilsMessengerEXT _debug_messenger;// Vulkan debug output handle
@@ -84,6 +87,7 @@ private:
 
 	VkSwapchainKHR _swapchain;
 	VkFormat _swapchainImageFormat;
+	bool resize_requested = false;
 
 	std::vector<VkImage> _swapchainImages;
 	std::vector<VkImageView> _swapchainImageViews;
@@ -100,7 +104,9 @@ private:
 
 	//draw resources
 	AllocatedImage _drawImage;
+	AllocatedImage _depthImage;
 	VkExtent2D _drawExtent;
+	float renderScale = 1.f;
 
 	DescriptorAllocator globalDescriptorAllocator;
 
@@ -119,6 +125,14 @@ private:
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
 
+	// Indexed vertices for mesh
+	VkPipelineLayout _meshPipelineLayout;
+	VkPipeline _meshPipeline;
+
+	// GLTF
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
+
 	void init_imgui();
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -126,6 +140,7 @@ private:
 
 	void init_swapchain();
 	void create_swapchain(uint32_t width, uint32_t height);
+	void resize_swapchain();
 	void destroy_swapchain();
 
 	void init_commands();
@@ -135,10 +150,16 @@ private:
 
 	void init_pipelines();
 	void init_background_pipelines();
+	void init_mesh_pipeline();
+
+	void init_default_data();
 
 	void draw_background(VkCommandBuffer cmd);
-
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+	void draw_geometry(VkCommandBuffer cmd);
 
 	FrameData& get_current_frame() { return _frames[_frameNumber % FRAME_OVERLAP]; };
+
+	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void destroy_buffer(const AllocatedBuffer& buffer);
 };
