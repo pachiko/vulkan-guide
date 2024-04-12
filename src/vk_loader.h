@@ -3,11 +3,19 @@
 #include <unordered_map>
 #include <filesystem>
 
-struct GeoSurface {
-    uint32_t startIndex;
-    uint32_t count;
+// Material has pipeline and DSet
+struct GLTFMaterial {
+	MaterialInstance data;
 };
 
+// A geometry surface / primitive
+struct GeoSurface {
+	uint32_t startIndex;
+	uint32_t count;
+	std::shared_ptr<GLTFMaterial> material;
+};
+
+// GLTF Mesh
 struct MeshAsset {
     std::string name;
 
