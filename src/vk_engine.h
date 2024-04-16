@@ -5,6 +5,15 @@
 #include <vk_types.h>
 #include <vk_descriptors.h>
 #include <vk_loader.h>
+#include <camera.h>
+
+struct EngineStats {
+	float frametime; // (ms)
+	int triangle_count;
+	int drawcall_count;
+	float scene_update_time; // (ms)
+	float mesh_draw_time; // (ms)
+};
 
 struct DeletionQueue {
 	std::deque<std::function<void()>> deletors;
@@ -97,7 +106,7 @@ struct RenderObject {
 	VkBuffer indexBuffer;
 
 	MaterialInstance* material;
-
+	Bounds bounds;
 	glm::mat4 transform;
 	VkDeviceAddress vertexBufferAddress;
 };
@@ -105,6 +114,7 @@ struct RenderObject {
 // Objects to render per frame. Only opaques at the moment.
 struct DrawContext {
 	std::vector<RenderObject> OpaqueSurfaces;
+	std::vector<RenderObject> TransparentSurfaces;
 };
 
 struct MeshNode : public Node {
@@ -132,8 +142,26 @@ public:
 	VkExtent2D _drawExtent;
 	float renderScale = 1.f;
 
+	// Default Textures
+	AllocatedImage _whiteImage;
+	AllocatedImage _blackImage;
+	AllocatedImage _greyImage;
+	AllocatedImage _errorCheckerboardImage;
+
+	VkSampler _defaultSamplerLinear;
+	VkSampler _defaultSamplerNearest;
+
+	// Images
+	AllocatedImage create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+	AllocatedImage create_image(void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+	void destroy_image(const AllocatedImage& img);
+
+	// Scene data
 	GPUSceneData sceneData; // VP matrices and lighting (updated per frame)
 	VkDescriptorSetLayout _gpuSceneDataDescriptorLayout; // Just the layout. Descriptor set is per-frame
+
+	// Material piepline builder & decsriptor writer
+	GLTFMetallic_Roughness metalRoughMaterial;
 
 	struct SDL_Window* _window{ nullptr };
 
@@ -154,7 +182,16 @@ public:
 	// upload the meshes into GPU
 	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
+	// Buffer
+	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void destroy_buffer(const AllocatedBuffer& buffer);
+
 private:
+	Camera mainCamera;
+
+	// Statistics
+	EngineStats stats;
+
 	// Main Vulkan structs
 	VkInstance _instance;// Vulkan library handle
 	VkDebugUtilsMessengerEXT _debug_messenger;// Vulkan debug output handle
@@ -169,16 +206,18 @@ private:
 	std::vector<VkImageView> _swapchainImageViews;
 	VkExtent2D _swapchainExtent;
 
-	FrameData _frames[FRAME_OVERLAP];
-
 	VkQueue _graphicsQueue;
 	uint32_t _graphicsQueueFamily;
 
 	VmaAllocator _allocator;
 
+	// Frame data
+	FrameData _frames[FRAME_OVERLAP];
+
 	// Scene graph
 	DrawContext mainDrawContext;
 	std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
+	std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
 
 	// For Compute Shader image and Materials
 	DescriptorAllocatorGrowable globalDescriptorAllocator;
@@ -191,18 +230,6 @@ private:
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
 
-	// Default Textures
-	AllocatedImage _whiteImage;
-	AllocatedImage _blackImage;
-	AllocatedImage _greyImage;
-	AllocatedImage _errorCheckerboardImage;
-
-	VkSampler _defaultSamplerLinear;
-	VkSampler _defaultSamplerNearest;
-
-	// Used to test textures
-	VkDescriptorSetLayout _singleImageDescriptorLayout;
-
 	// Immediate submit structures (just blocks CPU until GPU finishes the commands)
 	VkFence _immFence;
 	VkCommandBuffer _immCommandBuffer;
@@ -212,12 +239,6 @@ private:
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
 
-	// GLTF
-	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
-
-	// Test material
-	MaterialInstance defaultData;
-	GLTFMetallic_Roughness metalRoughMaterial;
 
 	void init_imgui();
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
@@ -246,11 +267,6 @@ private:
 	void update_scene();
 
 	FrameData& get_current_frame() { return _frames[_frameNumber % FRAME_OVERLAP]; };
-
-	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
-	void destroy_buffer(const AllocatedBuffer& buffer);
-
-	AllocatedImage create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
-	AllocatedImage create_image(void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
-	void destroy_image(const AllocatedImage& img);
 };
+
+bool is_visible(const RenderObject& obj, const glm::mat4& viewproj);
